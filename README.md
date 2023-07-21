@@ -35,7 +35,7 @@ git에 올라온 'loadcell_HanSol_final.ino'파일의 코드를 ESP32에 업로�
 
 혹은
 
-![image](https://github.com/HanSol1140/20230721cleaningbot/assets/121269266/612f8642-b6d5-4f08-9e94-2341ce4ee21a)
+![image](https://github.com/HanSol1140/20230721cleaningbot/assets/121269266/8e5b1602-d003-40c1-b443-8dc80df867ec)
 
 해당 부분을 주석처리하여 공유기 설정을 통한 포트포워딩을 통해 IP를 설정할 수 있습니다.
 
