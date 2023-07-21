@@ -306,7 +306,6 @@ void loop(){
                     Serial.println("청소봇 복귀 확인");
                     cleaningRobotRuningState = false;
                     sendMqttJson(false);
-                    return;
                 } else {
                     Serial.println("에러발생 - 청소명령 이상.");
                     sendMqttError(1);
