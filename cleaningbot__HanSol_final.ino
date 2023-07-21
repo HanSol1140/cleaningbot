@@ -1,6 +1,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <PubSubClient.h>
+#include <ArduinoJson.h>
 
 // IRremoteESP8266 라이브러리 설치
 #include <IRremoteESP8266.h> 
@@ -8,8 +9,8 @@
 #include <EEPROM.h> // 비휘발성 데이터를 저장하기위한 라이브러리 => 타이머 시간 저장
 
 #define PinIR 2
-#define checkInPlace 9
-#define checkInTable 10
+#define checkInPlace 18
+#define checkInTable 19
 
 IRsend irsend(PinIR);
 
@@ -63,9 +64,11 @@ int min2 = 0;
 int sec2 = 0;
 int min3 = 0;
 int sec3 = 0;
-int timerSet1 = 3000;
-int timerSet2 = 3000;
-int timerSet3 = 3000;
+int timerSet1 = 30000;
+int timerSet2 = 30000;
+int timerSet3 = 30000;
+
+bool cleaningRobotRuningState = false;
 
 // SSID & Password
 const char *ssid = "NNX-2.4G";
@@ -79,7 +82,8 @@ IPAddress ip(192, 168, 0, 2);
 IPAddress gateway(192, 168, 0, 1);
 IPAddress subnet(255, 255, 255, 0);
 
-WebServer server(8083); // Object of WebServer(HTTP port, 80 is defult)
+int serverport = 8083;
+WebServer server(serverport); // Object of WebServer(HTTP port, 80 is defult)
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -197,6 +201,28 @@ void InitWebServer(){
   server.begin();
 }
 
+void sendMqttJson(bool state){
+    StaticJsonDocument<200> doc;
+    // JSON 오브젝트에 cleaningRobotState 값을 추가
+    doc["cleaningRobotRuningState"] = state;
+    // JSON 형식의 문자열로 변환
+    char json[200];
+    serializeJson(doc, json);
+    // MQTT 브로커에 데이터 전송
+    client.publish("mainserver", json);
+}
+
+void sendMqttError(int errorcode){
+    StaticJsonDocument<200> doc;
+    // JSON 오브젝트에 cleaningRobotState 값을 추가
+    doc["cleaningbot_error_code"] = errorcode;
+    // JSON 형식의 문자열로 변환
+    char json[200];
+    serializeJson(doc, json);
+    // MQTT 브로커에 데이터 전송
+    client.publish("mainserver", json);
+}
+
 //---------------------------------------------------------------
 
 void setup(){               
@@ -211,6 +237,7 @@ void setup(){
     // MQTT 브로커 접속
     client.setServer(mqttServer, mqttPort);
     client.setCallback(mqttCallback);
+    setup_mqtt();
 
     InitWebServer();
 
@@ -239,73 +266,83 @@ void setup(){
 }
 
 void loop(){
-    connectLoopMQTT();
     client.loop();
     server.handleClient();
 
 
     // 청소 시작신호 수신
+    
     // 청소 시작
-    if(digitalRead(checkInPlace) == HIGH){
-        // 청소기가 제위치에 있지 않음
-        Serial.println("에러발생 - 청소봇이 이동하지 않았습니다.");
-        // client.publish("outTopic", "MQTT MESAGE"); // 서버에 MQTT 신호 보내기
-        return;
-    }else{ // checkInPlace == LOW => 청소봇이 청소하러 이동을 시작함 - 제자리 자리 이탈
-        if (digitalRead(checkInTable) == LOW) { // checkInPlace == LOW 상태에서 테이블을 감지(checkInTable == LOW)하면 청소시작
-            // 청소시작 IR
-            sendCleaningIR();
-            // 타이머동안 복귀 감지
-            checkBackHome(timerSet1);
-
-            if (digitalRead(checkInPlace) == HIGH) {
-                //청소봇 복귀 완료
-                Serial.println("청소봇 복귀 확인");
-
-            } else {
-                //청소봇 복귀 실패 - 청소신호 재발신
-                sendCleaningIR();
-                // sendCleaningIR(); ==> 두번 IR신호를 발생(정지, 재시작)해야 한다고하셨는데, 두번쏴야한다는건 기본적인 타이머설정에 문제가 있는게 아닌지?
-                // 청소 재시작 대기
-                checkBackHome(timerSet1);
-            }
-
-            // 복귀 확인
-            if (digitalRead(checkInPlace) == HIGH) {
-                Serial.println("청소봇 복귀 확인");
-            } else {
-                Serial.println("에러발생 - 청소명령 이상.");
-                // client.publish("outTopic", "MQTT MESAGE"); // 서버에 MQTT 신호 보내기
-                return;
-            }
-
-            checkBackHome(timerSet2);
-
-            if (digitalRead(checkInPlace) == HIGH) {
-                Serial.println("청소봇 복귀");
-            } else { // 청소기가 복귀하지 못함
-                // HomeIR신호 발생
-                sendHomeIR();
-                checkBackHome(timerSet3);
-            }
-
-            if (digitalRead(checkInPlace) == HIGH) {
-                Serial.println("청소봇 복귀 완료, 청소가 끝났습니다.");
-            } else {
-                // 복귀 명령 이상
-                Serial.println("에러 발생 - 복귀명령 이상");
-                // client.publish("outTopic", "MQTT MESAGE"); // 서버에 MQTT 신호 보내기
-                return;
-            }
-        } else {
-            // 테이블 감지 실패
-            Serial.println("테이블 감지 실패");
+    if(cleaningRobotRuningState == true){
+        if(digitalRead(checkInPlace) == HIGH){
+            // 청소기가 제자리에서 이동하지 않음
+            // Serial.println("청소봇이 이동하지 않았습니다.");
+            // client.publish("outTopic", "MQTT MESAGE"); // 서버에 MQTT 신호 보내기
             return;
-        }
+        }else{ // checkInPlace == LOW => 청소봇이 청소하러 이동을 시작함 - 제자리 자리 이탈
+            if (digitalRead(checkInTable) == LOW) { // checkInPlace == LOW 상태에서 테이블을 감지(checkInTable == LOW)하면 청소시작
+                // 청소시작 IR신호 발신
+                sendCleaningIR();
+                // 타이머동안 복귀 감지
+                checkBackHome(timerSet1);
 
-    }
-    if (!client.connected()) {
-      connectLoopMQTT();
+                if (digitalRead(checkInPlace) == HIGH) {
+                    //청소봇 복귀 완료
+                    Serial.println("청소봇 복귀 확인");
+                    cleaningRobotRuningState = false;
+                    sendMqttJson(false);
+                    return;
+
+                } else {
+                    //청소봇 복귀 실패 - 청소신호 재발신
+                    sendCleaningIR();
+                    // sendCleaningIR(); ==> 두번 IR신호를 발생(정지, 재시작)해야 한다고하셨는데, 두번쏴야 한다는건 기본적인 타이머설정의 문제라고 판단됩니다.
+                    // 청소 재시작 대기
+                    checkBackHome(timerSet1);
+                }
+
+                // 복귀 확인
+                if (digitalRead(checkInPlace) == HIGH) {
+                    Serial.println("청소봇 복귀 확인");
+                    cleaningRobotRuningState = false;
+                    sendMqttJson(false);
+                    return;
+                } else {
+                    Serial.println("에러발생 - 청소명령 이상.");
+                    sendMqttError(1);
+                    return;
+                }
+
+                checkBackHome(timerSet2);
+
+                if (digitalRead(checkInPlace) == HIGH) {
+                    Serial.println("청소봇 복귀");
+                    cleaningRobotRuningState = false;
+                    sendMqttJson(false);
+                    return;
+                } else { // 청소기가 복귀하지 못함
+                    // HomeIR신호 발생
+                    sendHomeIR();
+                    checkBackHome(timerSet3);
+                }
+
+                if (digitalRead(checkInPlace) == HIGH) {
+                    Serial.println("청소봇 복귀 완료, 청소가 끝났습니다.");
+                    cleaningRobotRuningState = false;
+                    sendMqttJson(false);
+                } else {
+                    // 복귀 명령 이상
+                    Serial.println("에러 발생 - 복귀명령 이상");
+                    sendMqttError(2);
+                    return;
+                }
+            } else {
+                // 테이블 감지 실패
+                // Serial.println("테이블 감지 실패");
+                return;
+            }
+
+        }
     }
 }
 
@@ -333,23 +370,52 @@ void setup_wifi(){
     Serial.println("IP address: ");
     Serial.println(WiFi.localIP());
 }
-// MQTT 수신 콜백 함수
+// JSON파싱을 위한 MQTT 콜백함수
+// MQTT JSON 받기
 void mqttCallback(char *topic, byte *payload, unsigned int length){
-    Serial.print("메시지 도착 [");
+    Serial.print("Topic Name [");
     Serial.print(topic);
-    Serial.print("] ");
+    Serial.println("] ");
+
+    char json[length + 1];
     for (int i = 0; i < length; i++){
-        Serial.print((char)payload[i]);
+        json[i] = (char)payload[i];
     }
-    Serial.println();
+    json[length] = '\0';
+    Serial.println(json);
+    
+    // Parse JSON
+    StaticJsonDocument<200> doc;
+    DeserializationError error = deserializeJson(doc, json);
+    // json형식이 아닐때를 위한 에러 핸들링
+    if (error) {
+        Serial.print(F("deserializeJson() failed: "));
+        Serial.println(error.f_str());
+        return;
+    }
+
+    // Extract values
+    bool RobotState = doc["cleaningRobotRuningState"];
+
+    if (RobotState == false){
+        cleaningRobotRuningState = false;
+        Serial.println("청소봇 청소 끝");
+    }
+    if (RobotState == true){
+        cleaningRobotRuningState = true;
+        Serial.println("청소봇 청소 시작");
+    }
 }
-// MQTT 재접속
-void connectLoopMQTT(){
-    while (!client.connected()){
-        if (client.connect("ESP32MQTTBrokerClient")){
+
+// MQTT 접속
+void setup_mqtt()
+{
+    while (!client.connected())
+    {
+        if (client.connect("ESP32MQTTBrokerClient"))
+        {
             Serial.println("MQTT 브로커에 연결됨");
-            client.publish("outTopic", "hello world");
-            client.subscribe("outTopic");
+            client.subscribe("cleaningbot_in");
         }
         else
         {
