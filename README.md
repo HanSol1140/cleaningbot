@@ -29,11 +29,15 @@
 
 git에 올라온 'loadcell_HanSol_final.ino'파일의 코드를 ESP32에 업로드합니다.
 
-![image](https://github.com/HanSol1140/loadcell/assets/121269266/f9abbb43-018f-4d83-8455-5b922835c75e)
+![image](https://github.com/HanSol1140/20230721cleaningbot/assets/121269266/726f96c0-1e5c-4533-99db-ba427a5b537a)
 
 코드의 상단 해당 부분을 수정해서 통해 IP 주소 / MQTT Broker 주소 / 접속할 WIFi를 설정해줍니다.
 
-![image](https://github.com/HanSol1140/20230721cleaningbot/assets/121269266/ce6b1176-6134-4094-9645-40fffef4a806)
+혹은
+
+![image](https://github.com/HanSol1140/20230721cleaningbot/assets/121269266/8e5b1602-d003-40c1-b443-8dc80df867ec)
+
+해당 부분을 주석처리하여 공유기 설정을 통한 포트포워딩을 통해 IP를 설정할 수 있습니다.
 
 
 # 사용방법
@@ -43,8 +47,6 @@ git에 올라온 'loadcell_HanSol_final.ino'파일의 코드를 ESP32에 업로�
 'cleaningbot_in'토픽에 {cleaningRobotRuningState: true}값을 전송해주어야합니다. (json형식)
 
 값을 전달받은 청소봇은 cleaningRobotRuningState = true;로 설정하고 값이 true로 설정되면 청소를 시작합니다.
-
-
 
 
 # 타이머 값 설명
