@@ -29,7 +29,7 @@
 
 git에 올라온 'loadcell_HanSol_final.ino'파일의 코드를 ESP32에 업로드합니다.
 
-![image](https://github.com/HanSol1140/loadcell/assets/121269266/f9abbb43-018f-4d83-8455-5b922835c75e)
+![image](https://github.com/HanSol1140/20230721cleaningbot/assets/121269266/68c3642d-9950-46bc-9d78-35f288937eeb)
 
 코드의 상단 해당 부분을 수정해서 통해 IP 주소 / MQTT Broker 주소 / 접속할 WIFi를 설정해줍니다.
 
