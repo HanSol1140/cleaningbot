@@ -296,7 +296,7 @@ void loop(){
                 } else { // 주어진 시간내로 청소가 끝나지 않았다면 => 복귀하지 못했다면,
                     //청소봇 복귀 실패 - 청소신호 재발신
                     sendCleaningIR();
-                    sendCleaningIR()
+                    sendCleaningIR();
                     // 청소 재시작 대기
                     checkBackHome(timerSet1);
                 }
