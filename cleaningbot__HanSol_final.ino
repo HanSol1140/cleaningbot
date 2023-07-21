@@ -296,7 +296,7 @@ void loop(){
                 } else { // 주어진 시간내로 청소가 끝나지 않았다면 => 복귀하지 못했다면,
                     //청소봇 복귀 실패 - 청소신호 재발신
                     sendCleaningIR();
-                    // sendCleaningIR(); ==> 두번 IR신호를 발생(정지, 재시작)해야 한다고하셨는데, 두번쏴야 한다는건 기본적인 타이머설정의 문제라고 판단됩니다.
+                    sendCleaningIR()
                     // 청소 재시작 대기
                     checkBackHome(timerSet1);
                 }
