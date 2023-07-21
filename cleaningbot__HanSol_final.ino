@@ -139,8 +139,8 @@ const char index_html[] PROGMEM = R"rawliteral(
 
   <section>
     <h2>타이머 입력해서 변수에 할당</h2>
-    <input type="number" id="min" value="0" min="0" max="60" placeholder="MIN" oninput="inputLimit(this)"/>
-    <input type="number" id="sec" value="0" min="0" max="60" placeholder="SEC" oninput="inputLimit(this)"/>
+    <input type="number" id="min" value="" min="" max="60" placeholder="MIN" oninput="inputLimit(this)"/>
+    <input type="number" id="sec" value="" min="" max="60" placeholder="SEC" oninput="inputLimit(this)"/>
     <button onclick="setTimerTime(1)">1번 타이머 설정</button>
     <button onclick="setTimerTime(2)">2번 타이머 설정</button>
     <button onclick="setTimerTime(3)">3번 타이머 설정</button>
@@ -310,6 +310,7 @@ void loop(){
                 } else {
                     Serial.println("에러발생 - 청소명령 이상.");
                     sendMqttError(1);
+                    cleaningRobotRuningState = false;
                     return;
                 }
 
@@ -334,6 +335,7 @@ void loop(){
                     // 복귀 명령 이상
                     Serial.println("에러 발생 - 복귀명령 이상");
                     sendMqttError(2);
+                    cleaningRobotRuningState = false;
                     return;
                 }
             } else {
