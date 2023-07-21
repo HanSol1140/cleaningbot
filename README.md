@@ -1,4 +1,4 @@
-![image](https://github.com/HanSol1140/20230721cleaningbot/assets/121269266/253f239c-7914-4ded-be60-ad586c21b6b4)# ESP32 청소봇 코드 업로드
+# ESP32 청소봇 코드 업로드
 
 ## Aruduiono ESP32에 코드를 업로드
 
@@ -11,8 +11,6 @@
 ## 라이브러리 설치
 
 ### Arduinojson / PubSubClient 라이브러리 설치
-
-![image](https://github.com/HanSol1140/loadcell/assets/121269266/f70df1bf-92b2-4c0a-9820-ad535e940411)
 
 라이브러리 매니저를 실행(Ctrl + Shift + I)
 >Arduinojson
@@ -29,13 +27,13 @@
 
 git에 올라온 'loadcell_HanSol_final.ino'파일의 코드를 ESP32에 업로드합니다.
 
-![image](https://github.com/HanSol1140/20230721cleaningbot/assets/121269266/726f96c0-1e5c-4533-99db-ba427a5b537a)
+![image](https://github.com/HanSol1140/cleaningbot/assets/121269266/f52f22c9-961d-4623-9f7a-7adbb5a7d443)
 
-코드의 상단 해당 부분을 수정해서 통해 IP 주소 / MQTT Broker 주소 / 접속할 WIFi를 설정해줍니다.
+코드의 상단 해당 부분을 수정해서 IP 주소 / MQTT Broker 주소 / 접속할 WIFi를 설정해줍니다.
 
 혹은
 
-![image](https://github.com/HanSol1140/20230721cleaningbot/assets/121269266/8e5b1602-d003-40c1-b443-8dc80df867ec)
+![image](https://github.com/HanSol1140/cleaningbot/assets/121269266/24ca2e6b-2283-422b-83ff-085c1fd4fbf5)
 
 해당 부분을 주석처리하여 공유기 설정을 통해 IP를 설정할 수 있습니다.
 
@@ -52,8 +50,6 @@ git에 올라온 'loadcell_HanSol_final.ino'파일의 코드를 ESP32에 업로�
 # 타이머 값 설명
 
 ESP32가 실행되면 상단에서 설정한 주소에 따라 웹브라우저를 실행해 해당 IP에 접속합니다.
-
-![image](https://github.com/HanSol1140/20230721cleaningbot/assets/121269266/6a843243-7a73-4bf8-95fb-9d90648ea8cb)
 
 모든 타이머의 기본설정 값은 30초입니다.
 
