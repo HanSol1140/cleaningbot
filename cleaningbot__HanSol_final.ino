@@ -82,7 +82,7 @@ IPAddress ip(192, 168, 0, 2);
 IPAddress gateway(192, 168, 0, 1);
 IPAddress subnet(255, 255, 255, 0);
 
-int serverport = 8083;
+int serverport = 80;
 WebServer server(serverport); // Object of WebServer(HTTP port, 80 is defult)
 
 WiFiClient espClient;
