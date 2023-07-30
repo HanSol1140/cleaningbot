@@ -73,6 +73,7 @@ bool cleaningRobotRuningState = false;
 // SSID & Password
 const char *ssid = "NNX-2.4G";
 const char *password = "$@43skshslrtm";
+
 const char *mqttServer = "192.168.0.137";
 const int mqttPort = 1883;
 
@@ -215,12 +216,14 @@ void sendMqttJson(bool state){
 void sendMqttError(int errorcode){
     StaticJsonDocument<200> doc;
     // JSON 오브젝트에 cleaningRobotState 값을 추가
-    doc["cleaningbot_error_code"] = errorcode;
+    doc["cleaningbotErrorCode"] = errorcode;
     // JSON 형식의 문자열로 변환
     char json[200];
     serializeJson(doc, json);
     // MQTT 브로커에 데이터 전송
     client.publish("mainserver", json);
+    // 1 => 청소명령 이상
+    // 2 => 복귀명령 이상
 }
 
 //---------------------------------------------------------------
