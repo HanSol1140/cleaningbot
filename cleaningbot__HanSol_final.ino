@@ -210,7 +210,7 @@ void sendMqttJson(bool state){
     char json[200];
     serializeJson(doc, json);
     // MQTT 브로커에 데이터 전송
-    client.publish("mainserver", json);
+    client.publish("door_mqtt", json);
 }
 
 void sendMqttError(int errorcode){
@@ -221,7 +221,7 @@ void sendMqttError(int errorcode){
     char json[200];
     serializeJson(doc, json);
     // MQTT 브로커에 데이터 전송
-    client.publish("mainserver", json);
+    client.publish("door_mqtt", json);
     // 1 => 청소명령 이상
     // 2 => 복귀명령 이상
 }
@@ -403,7 +403,7 @@ void mqttCallback(char *topic, byte *payload, unsigned int length){
 
     if (RobotState == false){
         cleaningRobotRuningState = false;
-        Serial.println("청소봇 청소 끝");
+        Serial.println("청소봇 청소 종료");
     }
     if (RobotState == true){
         cleaningRobotRuningState = true;
