@@ -14,6 +14,16 @@
 
 IRsend irsend(PinIR);
 
+// 테스트해볼것
+const unsigned int rawData[44] = {
+  3050,2450, 550,400, 550,1450, 550,450,
+  550,1400, 550,450, 550,1450, 550,1400,
+  550,450, 550,1450, 550,450, 500,1450,
+  550,450, 550,450, 550,400, 550,1450,
+  550,450, 550,1400, 550,450, 550,1450,
+  550,1400, 550
+};
+
 const uint16_t cleaningIR[131] = {
     3014, 2482, 542, 456,   516,  1482, 542, 460,   514,  1482,
     544,  456,  516, 1484,  540,  1458, 540, 458,   516,  482,
@@ -216,7 +226,7 @@ void sendMqttJson(bool state){
 void sendMqttError(int errorcode){
     StaticJsonDocument<200> doc;
     // JSON 오브젝트에 cleaningRobotState 값을 추가
-    doc["cleaningbotErrorCode"] = errorcode;
+    doc["cleaningRobotErrorCode"] = errorcode;
     // JSON 형식의 문자열로 변환
     char json[200];
     serializeJson(doc, json);
