@@ -3,16 +3,63 @@
 #include <PubSubClient.h> // MQTT
 #include <ArduinoJson.h> // MQTT JSON
 #include <EEPROM.h> // 비휘발성 메모리 저장
-
 #include <IRremoteESP8266.h>
 #include <IRsend.h>
 
+// MQTT
+char mqttName[16] = "cleaningbot_02";
+const char *mqttTopic = "cleaningbot_in";
+const char *mqttServer = "192.168.0.137";
+const int mqttPort = 1883;
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+// WIFI SSID & Password
+const char *ssid = "NNX2-2.4G";
+const char *password = "$@43skshslrtm";
+uint16_t webPort = 80;
+ESP8266WebServer server(webPort);
+
+// 고정 IP 설정 => setup_wifi부분에 고정 IP 설정부분을 같이 주석해제하면 됨
+// IPAddress ip(192, 168, 0, 2); // 고정하고싶은 IP(사용중인 IP는 안됨)
+// IPAddress gateway(192, 168, 0, 1);  // 1 고정
+// IPAddress subnet(255, 255, 255, 0); // 고정
+// ============================================================
+void setup_wifi(){
+    // 고정 IP 설정
+    // if (!WiFi.config(ip, gateway, subnet))
+    // {
+    //     Serial.prindtln("STA Failed to configure");
+    // // }
+
+    // 먼저 WiFi 네트워크에 연결합니다.
+    Serial.println();
+    Serial.print("Connecting to ");
+    Serial.println(ssid);
+
+    WiFi.begin(ssid, password);
+
+    // 와이파이가 접속이 됬는지 확인
+    while (WiFi.status() != WL_CONNECTED){
+        delay(500);
+        Serial.println("연결 시도중!");
+    }
+
+    Serial.println("");
+    Serial.println("WiFi connected");
+    Serial.print("IP address: ");
+    Serial.println(WiFi.localIP());
+    Serial.print("PORT address: ");
+    Serial.println(webPort);
+}
+
+// ============================================================
 const uint16_t checkInPlace = 9;
 const uint16_t checkInTable = 10;
 // => 모듈을 보면 2, 0 처럼 되어 있으나 핀번호가 양옆으로 뒤집혀 있음,
 const uint16_t IR_TX = 4;
 IRsend irsend(IR_TX);
-// ============================================================
+
 int min1 = 0;
 int sec1 = 0;
 int min2 = 0;
@@ -70,53 +117,7 @@ void sendPauseWorkIR(){
     Serial.println("시작/정지 IR신호 발생");
     irsend.sendRaw(PauseWorkIR, 44, 38);  // Send a raw data capture at 38kHz.
 }
-// ============================================================
-// WIFI SSID & Password
-const char *ssid = "nnx-factory 3 2.4G";
-const char *password = "$@43skshslrtm";
-uint16_t webPort = 80;
-ESP8266WebServer server(webPort);
-// 고정 IP 설정
-// IPAddress ip(192, 168, 0, 2);
-// IPAddress gateway(192, 168, 0, 1);  // 1 고정
-// IPAddress subnet(255, 255, 255, 0); // 고정
-// ============================================================
-// MQTT
-char mqttName[16] = "cleaningbot_01";
-const char *mqttTopic = "cleaningbot_in";
-const char *mqttServer = "192.168.0.137";
-const int mqttPort = 1883;
-WiFiClient espClient;
-PubSubClient client(espClient);
-// ============================================================
-void setup_wifi(){
-    // 고정 IP 설정
-    // if (!WiFi.config(ip, gateway, subnet))
-    // {
-    //     Serial.prindtln("STA Failed to configure");
-    // // }
 
-    // 먼저 WiFi 네트워크에 연결합니다.
-    Serial.println();
-    Serial.print("Connecting to ");
-    Serial.println(ssid);
-
-    WiFi.begin(ssid, password);
-
-    // 와이파이가 접속이 됬는지 확인
-    while (WiFi.status() != WL_CONNECTED)
-    {
-        delay(500);
-        Serial.println("연결 시도중!");
-    }
-
-    Serial.println("");
-    Serial.println("WiFi connected");
-    Serial.print("IP address: ");
-    Serial.println(WiFi.localIP());
-    Serial.print("PORT address: ");
-    Serial.println(webPort);
-}
 // ============================================================
 void handle_root();
 // HTML 페이지
@@ -165,19 +166,21 @@ const char index_html[] PROGMEM = R"rawliteral(
       xhr.open("GET", "/settimer?min=" + min + "&sec=" + sec + "&num=" + num, true);
       xhr.send();
     }
-    function setRobotName(){
-      var newName = document.getElementById("newName").value;
-      var xhr = new XMLHttpRequest();
-      xhr.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-          alert("로봇명 변경 완료!");
-          window.location.reload(); // 페이지 새로고침
-        }
-      };
+    function validateAndSetTimerTime(num) {
+      var min = document.getElementById("min").value;
+      var sec = document.getElementById("sec").value;
 
-      xhr.open("GET", "/setname?name=" + newName, true);
-      xhr.send();
+      // 입력 값이 비어있거나 0보다 작거나 같은 경우 오류 메시지를 출력합니다.
+      if (min === '' || sec === '' || min < 0 || sec < 0) {
+        alert("값을 다시 입력해주세요");
+        window.location.reload(); // 페이지 새로고침
+        return; // 함수 실행을 여기서 종료합니다.
+      }
+
+      // 입력 값이 유효한 경우 setTimerTime 함수를 호출합니다.
+      setTimerTime(num);
     }
+    
     function inputLimit(number) {
       if (number.value < 0) {
         number.value = 0;
@@ -189,25 +192,16 @@ const char index_html[] PROGMEM = R"rawliteral(
   </script>
 
   <section>
-    <h2>로봇 설정</h2>
-    <ul>
-      <li>로봇명: <span id="currentName">기본값</span></li>
-      <li><input type="text" id="newName" placeholder="새 로봇명 입력"/></li>
-      <li><button onclick="setRobotName()">확인</button></li>
-    </ul>
-  </section>
-  <section>
     <h2>타이머 설정(기본 30초)</h2>
-    <
     <ul>
       <li>
-        <input type="number" id="min" value="" min="" max="60" placeholder="MIN" oninput="inputLimit(this)"/>
-        <input type="number" id="sec" value="" min="" max="60" placeholder="SEC" oninput="inputLimit(this)"/>
+        <input type="number" id="min" value="0" min="" max="60" placeholder="MIN" oninput="inputLimit(this)"/>
+        <input type="number" id="sec" value="0" min="" max="60" placeholder="SEC" oninput="inputLimit(this)"/>
       </li>
       <li>
-        <button onclick="setTimerTime(1)">1번 타이머 설정</button>
-        <button onclick="setTimerTime(2)">2번 타이머 설정</button>
-        <button onclick="setTimerTime(3)">3번 타이머 설정</button>
+        <button onclick="validateAndSetTimerTime(1)">1번 타이머 설정</button>
+        <button onclick="validateAndSetTimerTime(2)">2번 타이머 설정</button>
+        <button onclick="validateAndSetTimerTime(3)">3번 타이머 설정</button>
       </li>
     </ul>
   </section>
@@ -218,11 +212,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 #endif
 
 void handle_root(){
-  String htmlContent = index_html; // index_html 문자열을 복사
-  // 현재 mqttName을 HTML에 삽입
-  htmlContent.replace("기본값", mqttName);
-  // server.send(200, "text/html", index_html);
-  server.send(200, "text/html", htmlContent);
+  server.send(200, "text/html", index_html);
 }
 
 void setTimerTime() {
@@ -236,8 +226,8 @@ void setTimerTime() {
       sec1 = secStr.toInt();
       timerSet1 = ((min1 * 60) + sec1) * 1000;
       Serial.println("타이머 시간설정 1 - " + minStr + "분 " + secStr + "초");
-      EEPROM.write(16, min1);
-      EEPROM.write(17, sec1);
+      EEPROM.write(0, min1);
+      EEPROM.write(1, sec1);
       EEPROM.commit();
       break;
     case 2:
@@ -245,8 +235,8 @@ void setTimerTime() {
       sec2 = secStr.toInt();
       timerSet2 = ((min2 * 60) + sec2) * 1000;
       Serial.println("타이머 시간설정 2 - " + minStr + "분 " + secStr + "초");
-      EEPROM.write(18, min2);
-      EEPROM.write(19, sec2);
+      EEPROM.write(2, min2);
+      EEPROM.write(3, sec2);
       EEPROM.commit();
       break;
     case 3:
@@ -254,37 +244,17 @@ void setTimerTime() {
       sec3 = secStr.toInt();
       timerSet3 = ((min3 * 60) + sec3) * 1000;
       Serial.println("타이머 시간설정 3 - " + minStr + "분 " + secStr + "초");
-      EEPROM.write(20, min3);
-      EEPROM.write(21, sec3);
+      EEPROM.write(4, min3);
+      EEPROM.write(5, sec3);
       EEPROM.commit();
       break;
   }
   server.send(200, "text/html", index_html);
 }
 
-void setRobotName() {
-  String newName = server.arg("name");
-  // newName을 EEPROM에 저장
-  // EEPROM에 저장된 데이터 길이 제한에 유의
-  // 예: 최대 15자로 제한
-  newName = newName.substring(0, 15);
-  for (int i = 0; i < newName.length(); i++) {
-    EEPROM.write(i, newName[i]);
-  }
-  // 문자열 종료를 위해 null 문자 추가
-  EEPROM.write(newName.length(), '\0');
-  EEPROM.commit();
-
-  // mqttName 업데이트
-  newName.toCharArray(mqttName, newName.length() + 1);
-
-  server.send(200, "text/plain", "이름 설정 완료");
-}
-
 void InitWebServer(){
   server.on("/", handle_root);
   server.on("/settimer", HTTP_GET, setTimerTime);
-  server.on("/setname", HTTP_GET, setRobotName);
   server.begin();
 }
 
@@ -336,11 +306,12 @@ void mqttCallback(char *topic, byte *payload, unsigned int length){
   }
 
   // Extract values
-  // 예시
+  // 보내는 경우 예시(자바스크립트)
   // var message = {
   //   robotname : "cleaningbot_01",
   //   robotstate : true
   // }
+  // client.publish('cleaningbot_in', JSON.stringify(message));
 
   const char* robotName = doc["robotname"]; // 문자열로 추출
   bool robotState = doc["robotstate"];
@@ -393,22 +364,9 @@ void setup() {
   // IR 발신설정 초기화
   irsend.begin();
   // 비휘발성 메모리 초기화
-  EEPROM.begin(50); // EEPROM에 50바이트 할당
+  EEPROM.begin(12); // EEPROM에 12바이트 할당
 
-  // EEPROM에서 로봇 이름 불러오기
-  String robotName = "";
-  for (int i = 0; i < 15; i++) { // 최대 15자
-    char c = EEPROM.read(i);
-    if (c == '\0') break;
-    robotName += c;
-  }
-  // 로봇 이름이 유효한지 확인하고, 아니면 기본값 사용
-  if (robotName.length() == 0) {
-    robotName = "cleaningbot_01";
-  }
 
-  // 글로벌 MQTT 이름 변수 업데이트
-  robotName.toCharArray(mqttName, robotName.length() + 1);
   // 와이파이 접속
   setup_wifi();
   // 웹서버 초기화
@@ -419,12 +377,12 @@ void setup() {
   setup_mqtt();
 
   // Timer 기록값
-  min1 = EEPROM.read(16); 
-  sec1 = EEPROM.read(17); 
-  min2 = EEPROM.read(18);
-  sec2 = EEPROM.read(19);
-  min3 = EEPROM.read(20);
-  sec3 = EEPROM.read(21);
+  min1 = EEPROM.read(0); 
+  sec1 = EEPROM.read(1); 
+  min2 = EEPROM.read(2);
+  sec2 = EEPROM.read(3);
+  min3 = EEPROM.read(4);
+  sec3 = EEPROM.read(5);
   timerSet1 = ((min1 * 60) + sec1) * 1000;
   timerSet2 = ((min2 * 60) + sec2) * 1000;
   timerSet3 = ((min3 * 60) + sec3) * 1000;
@@ -439,7 +397,7 @@ void setup() {
   if(timerSet3 == 15555000){
     timerSet3 = 30000;
   }
-
+  Serial.println(mqttName);
   Serial.println(timerSet1);
   Serial.println(timerSet2);
   Serial.println(timerSet3);

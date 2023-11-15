@@ -14,6 +14,12 @@
     모듈을 받았을때 빼놓은 선이 GP2, GP0으로
     칩셋을 보고 햇갈리기 쉬우나 반대로 뒤집혀잇음
     즉, 바깥쪽 핀은 GP9, GP10이고 안쪽핀이 GP2, GP0으로 되어있음
+<mqtt청소시작 명령어>
+    var message = {
+        robotname : "cleaningbot_01",
+        robotstate : false
+        }
+    client.publish('cleaningbot_in', JSON.stringify(message));
 
 <체크>
 #include <IRremoteESP8266.h>
