@@ -32,7 +32,8 @@
 
 # 코드 업로드
 
-1. git에 올라온 'ESP01M_NNX_Cleaningbot.ino.ino'파일의 코드를 ESP32에 업로드합니다.
+git에 올라온 'ESP01M_NNX_Cleaningbot.ino.ino'파일의 코드를 ESP32에 업로드합니다.
+
 ![image](https://github.com/HanSol1140/cleaningbot/assets/121269266/5a8f5746-928a-40ba-b829-bd87d2c4b0f3)
 
 코드의 상단 밑줄친 부분을 수정해서 mqttName / ssid(WIFI ID) / password(WIFI Password)를 수정해줍니다.
