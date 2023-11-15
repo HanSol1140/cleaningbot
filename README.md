@@ -43,7 +43,7 @@ mqttName이 다른 기기와 겹칠경우 mqtt접속이 안되어 작동이 불�
 
 ![image](https://github.com/HanSol1140/cleaningbot/assets/121269266/82caef65-412d-44a2-a764-4073ca8d3658)
 
-공유기 설정을 통한 고정 IP 설정 말고도 해당 부분을 주석해제하여 원하는 IP로 고정할 수 있습니다.
+고정 IP 설정 해당 부분을 주석해제하여 원하는 IP로 고정할 수 있습니다.
 
 
 # 사용방법
