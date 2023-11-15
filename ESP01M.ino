@@ -197,7 +197,8 @@ const char index_html[] PROGMEM = R"rawliteral(
     </ul>
   </section>
   <section>
-    <h2>타이머 입력해서 변수에 할당</h2>
+    <h2>타이머 설정(기본 30초)</h2>
+    <
     <ul>
       <li>
         <input type="number" id="min" value="" min="" max="60" placeholder="MIN" oninput="inputLimit(this)"/>
@@ -469,7 +470,7 @@ void loop(){
                 if(!checkStart(timerSet1)){ // timer1시간내로 출발실패(digitalRead(checkInPlace) == HIGH));
                     // Serial.println("출발실패1");
                     sendPauseWorkIR();
-                    delay(500);
+                    delay(1000);
                     sendPauseWorkIR();
                     if(!checkStart(timerSet1)){ // 타이머 대기 재시도
                         // Error 발생
@@ -482,7 +483,7 @@ void loop(){
   
                 // checkStart()의 결과가 true라면 (출발했다면)
                 // timer2 시간내로 복귀 확인
-                if(!checkBackHome(timerSet2)){ // 복귀 시도 실패
+                if(!checkBackHome(timerSet2)){ // 복귀 실패
                     sendHomeIR(); // 홈IR 발생
                     if(!checkBackHome(timerSet3)){ // 복귀 시도 실패
                         Serial.println("청소봇 복귀 실패, 에러 메세지 발신");
@@ -563,4 +564,3 @@ void reconnectMQTT() {
     }
   }
 }
-
