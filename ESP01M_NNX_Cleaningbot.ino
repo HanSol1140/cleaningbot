@@ -10,7 +10,6 @@
 const char* mqttName = "cleaningbot_01";
 const char* mqttTopic = "cleaningbot_in";
 const char* mqttServer = "192.168.0.137";
-
 const int mqttPort = 1883;
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -20,7 +19,30 @@ const char *ssid = "NNX2-2.4G";
 const char *password = "$@43skshslrtm";
 uint16_t webPort = 80;
 ESP8266WebServer server(webPort);
-// ============================================================
+
+// ==========
+const uint16_t checkInPlace = 9;
+const uint16_t checkInTable = 10;
+// => 모듈을 보면 2, 0 처럼 되어 있으나 핀번호가 양옆으로 뒤집혀 있음,
+const uint16_t IR_TX = 4;
+IRsend irsend(IR_TX);
+
+int min1 = 0;
+int sec1 = 0;
+int min2 = 0;
+int sec2 = 0;
+int min3 = 0;
+int sec3 = 0;
+// Timer
+int timerSet1 = 0;
+int timerSet2 = 0;
+int timerSet3 = 0;
+
+bool cleaningbotRuningState = false;
+
+bool checkHome = false;
+
+// ==========
 // MQTT 접속
 void setup_mqtt(){
     while (!client.connected()){
@@ -54,7 +76,56 @@ void reconnectMQTT() {
   }
 }
 
-// ============================================================
+// JSON파싱을 위한 MQTT 콜백함수
+// MQTT JSON 받기
+void mqttCallback(char *topic, byte *payload, unsigned int length){
+  // Serial.print("Topic Name [");
+  // Serial.print(topic);
+  // Serial.println("] ");
+
+  char json[length + 1];
+  for (int i = 0; i < length; i++){
+      json[i] = (char)payload[i];
+  }
+  json[length] = '\0';
+  Serial.println(json);
+  
+  // Parse JSON
+  StaticJsonDocument<200> doc;
+  DeserializationError error = deserializeJson(doc, json);
+  
+  // json형식이 아닐때를 위한 에러 핸들링
+  if (error) {
+      Serial.print(F("deserializeJson() failed: "));
+      Serial.println(error.f_str());
+      return;
+  }
+
+  // Extract values
+  // 보내는 경우 예시(자바스크립트)
+  // var message = {
+  //   robotname : "cleaningbot_01",
+  //   robotstate : true
+  // }
+  // client.publish('cleaningbot_in', JSON.stringify(message));
+
+  const char* robotName = doc["robotname"]; // 문자열로 추출
+  bool robotState = doc["robotstate"];
+  if (strcmp(robotName, mqttName) == 0) {
+    if (robotState == false){
+        cleaningbotRuningState = false;
+        Serial.println("청소봇 청소 종료");
+    }else if(robotState == true){
+        if(cleaningbotRuningState == true){
+            sendMqttError("해당 로봇이 이미 청소중입니다.");
+        }else{
+            cleaningbotRuningState = true;
+            Serial.println("청소봇 청소 시작");
+        }
+    }
+  }
+}
+// ==========
 // 고정 IP 설정 => setup_wifi부분에 고정 IP 설정부분을 같이 주석해제하면 됨
 // IPAddress ip(192, 168, 0, 2); // 고정하고 싶은 IP(사용중인 IP는 안됨)
 // IPAddress gateway(192, 168, 0, 1);  // 1 고정
@@ -97,28 +168,8 @@ void reconnectWiFi() {
   }
   Serial.println("WiFi에 연결되었습니다!");
 }
-// ============================================================
-const uint16_t checkInPlace = 9;
-const uint16_t checkInTable = 10;
-// => 모듈을 보면 2, 0 처럼 되어 있으나 핀번호가 양옆으로 뒤집혀 있음,
-const uint16_t IR_TX = 4;
-IRsend irsend(IR_TX);
 
-int min1 = 0;
-int sec1 = 0;
-int min2 = 0;
-int sec2 = 0;
-int min3 = 0;
-int sec3 = 0;
-// Timer
-int timerSet1 = 0;
-int timerSet2 = 0;
-int timerSet3 = 0;
-
-bool cleaningbotRuningState = false;
-
-bool checkHome = false;
-// ============================================================
+// ==========
 
 // 전원On/Off
 const uint16_t PowerIR[44] = {
@@ -161,8 +212,7 @@ void sendPauseWorkIR(){
     Serial.println("시작/정지 IR신호 발생");
     irsend.sendRaw(PauseWorkIR, 44, 38);  // Send a raw data capture at 38kHz.
 }
-
-// ============================================================
+// ==========
 void handle_root();
 // HTML 페이지
 #if 1
@@ -302,57 +352,9 @@ void InitWebServer(){
   server.begin();
 }
 
-// ============================================================
+// ==========
 
-// JSON파싱을 위한 MQTT 콜백함수
-// MQTT JSON 받기
-void mqttCallback(char *topic, byte *payload, unsigned int length){
-  // Serial.print("Topic Name [");
-  // Serial.print(topic);
-  // Serial.println("] ");
 
-  char json[length + 1];
-  for (int i = 0; i < length; i++){
-      json[i] = (char)payload[i];
-  }
-  json[length] = '\0';
-  Serial.println(json);
-  
-  // Parse JSON
-  StaticJsonDocument<200> doc;
-  DeserializationError error = deserializeJson(doc, json);
-  
-  // json형식이 아닐때를 위한 에러 핸들링
-  if (error) {
-      Serial.print(F("deserializeJson() failed: "));
-      Serial.println(error.f_str());
-      return;
-  }
-
-  // Extract values
-  // 보내는 경우 예시(자바스크립트)
-  // var message = {
-  //   robotname : "cleaningbot_01",
-  //   robotstate : true
-  // }
-  // client.publish('cleaningbot_in', JSON.stringify(message));
-
-  const char* robotName = doc["robotname"]; // 문자열로 추출
-  bool robotState = doc["robotstate"];
-  if (strcmp(robotName, mqttName) == 0) {
-    if (robotState == false){
-        cleaningbotRuningState = false;
-        Serial.println("청소봇 청소 종료");
-    }else if(robotState == true){
-        if(cleaningbotRuningState == true){
-            sendMqttError("해당 로봇이 이미 청소중입니다.");
-        }else{
-            cleaningbotRuningState = true;
-            Serial.println("청소봇 청소 시작");
-        }
-    }
-  }
-}
 
 void sendMqttJson(bool state){
   StaticJsonDocument<200> doc;
@@ -377,8 +379,7 @@ void sendMqttError(String errormessage){
   // MQTT 브로커에 데이터 전송
   client.publish("mainserver", json);
 }
-// ============================================================
-// ============================================================
+// ==========
 void setup() {
   // 통신속도 초기화
   Serial.begin(115200);
@@ -484,7 +485,7 @@ void loop(){
         }
     }
 }
-// ============================================================
+// ==========
 bool checkStart(int timerset){ // 출발감지
     for(int i = 0; i < (timerset / 100); i++){
         if(digitalRead(checkInPlace) == LOW){
@@ -517,4 +518,3 @@ bool checkBackHome(int timerset){
     }
     return false;
 }
-
