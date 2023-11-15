@@ -1,0 +1,99 @@
+<기존의 ESP32로 짠 코드는 모듈을 잘못 지정함>
+    11/13일자 기준으로
+    지급받은 ESP-01M으로 코드를 짜야함
+    ESP8266기판에 ESP-01M칩셋이 끼워져있음
+    ESP8266의RX,TX우측에 IO0과 옆의  GND를 서로 연결한채로(프로그래밍 모드)
+    코드를 업로드해야 코드가 업로드됨
+
+    지급받은CP2102(USB to TTL)로는 RX/TX를 교차연결해야 업로드가 됨
+    (RX - RX / TX - TX를 연결해야 통신이 되는 컨버터가 있음)
+    지급 받은 기종은 ESP8285 ESP01M 모듈
+    GPIO 4 = IR_TX
+    GPIO 14 = IR_RX
+
+    모듈을 받았을때 빼놓은 선이 GP2, GP0으로
+    칩셋을 보고 햇갈리기 쉬우나 반대로 뒤집혀잇음
+    즉, 바깥쪽 핀은 GP9, GP10이고 안쪽핀이 GP2, GP0으로 되어있음
+<mqtt청소시작 명령어>
+    var message = {
+        robotname : "cleaningbot_01",
+        robotstate : false
+        }
+    client.publish('cleaningbot_in', JSON.stringify(message));
+
+<체크>
+#include <IRremoteESP8266.h>
+#include <IRsend.h>
+const uint16_t checkInPlace = 9;
+const uint16_t checkInTable = 10;
+// => 모듈을 보면 2, 0 처럼 되어 있으나 핀번호가 양옆으로 뒤집혀 있음,
+const uint16_t IR_TX = 4; // TX
+IRsend irsend(IR_TX);
+
+
+// 전원On/Off
+const uint16_t PowerIR[44] = {
+    3000, 2450, 550, 450,  550, 1400, 550, 450,
+    550,  1450, 550, 400,  550, 1450, 550, 1450,
+    500,  450,  550, 450,  550, 450,  550, 450,
+    550,  450,  500, 450,  550, 450,  550, 1450,
+    500,  1450, 550, 1450, 550, 1400,  550, 1450,
+    550,  1400, 550
+};
+void sendPowerIR(){
+    Serial.println("전원 ON/OFF");
+    irsend.sendRaw(PowerIR, 44, 38);  // Send a raw data capture at 38kHz.
+}
+
+
+// 충전(HomeIR)
+const uint16_t HomeIR[44] = {
+    3050, 2400, 550, 450,  550, 1400, 600, 450,
+    500,  1450, 550, 450,  550, 1400, 550, 450,
+    550,  1450, 550, 450,  550, 400,  550, 450,
+    550,  450,  550, 400,  600, 1400, 550, 450,
+    550,  1450, 550, 1400, 550, 1450, 550, 1400,
+    550,  1450, 550
+};
+void sendHomeIR(){
+    Serial.println("홈 IR신호 발생");
+    irsend.sendRaw(HomeIR, 44, 38);  // Send a raw data capture at 38kHz.
+}
+
+
+// 청소 시작/정지
+const uint16_t PauseWorkIR[44] = {
+    3050, 2450, 550, 400,  550, 1450, 550, 450,
+    550,  1400, 550, 450,  550, 1450, 550, 1400,
+    550,  450,  550, 1450, 550, 450,  500, 1450,
+    550,  450,  550, 450,  550, 400,  550, 1450,
+    550,  450,  550, 1400, 550, 450,  550, 1450,
+    550,  1400, 550
+};
+void sendPauseWorkIR(){
+    Serial.println("시작/정지 IR신호 발생");
+    irsend.sendRaw(PauseWorkIR, 44, 38);  // Send a raw data capture at 38kHz.
+
+}
+
+
+
+
+void setup() {
+    Serial.begin(115200);
+    irsend.begin();
+    pinMode(checkInPlace, INPUT_PULLUP);
+    pinMode(checkInTable, INPUT_PULLUP);
+}
+
+void loop() {
+    if (digitalRead(checkInPlace) == LOW) { // btn1이 눌렸는지 확인
+    sendPauseWorkIR();
+    Serial.println("btn1"); // 시리얼 모니터에 btn1 출력
+    }
+    if (digitalRead(checkInTable) == LOW) { // btn2가 눌렸는지 확인
+    sendHomeIR();
+    Serial.println("btn2"); // 시리얼 모니터에 btn2 출력
+    }
+    delay(1000); // 디바운싱을 위한 지연
+}

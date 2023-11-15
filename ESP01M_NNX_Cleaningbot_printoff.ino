@@ -224,7 +224,7 @@ void setTimerTime() {
       min1 = minStr.toInt();
       sec1 = secStr.toInt();
       timerSet1 = ((min1 * 60) + sec1) * 1000;
-      Serial.println("타이머 시간설정 1 - " + minStr + "분 " + secStr + "초");
+      // Serial.println("타이머 시간설정 1 - " + minStr + "분 " + secStr + "초");
       EEPROM.write(0, min1);
       EEPROM.write(1, sec1);
       EEPROM.commit();
@@ -233,7 +233,7 @@ void setTimerTime() {
       min2 = minStr.toInt();
       sec2 = secStr.toInt();
       timerSet2 = ((min2 * 60) + sec2) * 1000;
-      Serial.println("타이머 시간설정 2 - " + minStr + "분 " + secStr + "초");
+      // Serial.println("타이머 시간설정 2 - " + minStr + "분 " + secStr + "초");
       EEPROM.write(2, min2);
       EEPROM.write(3, sec2);
       EEPROM.commit();
@@ -242,7 +242,7 @@ void setTimerTime() {
       min3 = minStr.toInt();
       sec3 = secStr.toInt();
       timerSet3 = ((min3 * 60) + sec3) * 1000;
-      Serial.println("타이머 시간설정 3 - " + minStr + "분 " + secStr + "초");
+      // Serial.println("타이머 시간설정 3 - " + minStr + "분 " + secStr + "초");
       EEPROM.write(4, min3);
       EEPROM.write(5, sec3);
       EEPROM.commit();
@@ -265,14 +265,14 @@ void setup_mqtt()
     {
         if (client.connect(mqttName))
         {
-            Serial.println("MQTT 브로커에 연결됨");
+            // Serial.println("MQTT 브로커에 연결됨");
             client.subscribe(mqttTopic); // 구독할 토픽
         }
         else
         {
-            Serial.print("MQTT 브로커 연결 실패, 상태코드: rc =  ");
-            Serial.print(client.state());
-            Serial.println(" 3초 후 재시도...");
+            // Serial.print("MQTT 브로커 연결 실패, 상태코드: rc =  ");
+            // Serial.print(client.state());
+            // Serial.println(" 3초 후 재시도...");
             delay(3000);
         }
     }
@@ -317,13 +317,13 @@ void mqttCallback(char *topic, byte *payload, unsigned int length){
   if (strcmp(robotName, mqttName) == 0) {
     if (robotState == false){
         cleaningbotRuningState = false;
-        Serial.println("청소봇 청소 종료");
+        // Serial.println("청소봇 청소 종료");
     }else if(robotState == true){
         if(cleaningbotRuningState == true){
             sendMqttError("해당 로봇이 이미 청소중입니다.");
         }else{
             cleaningbotRuningState = true;
-            Serial.println("청소봇 청소 시작");
+            // Serial.println("청소봇 청소 시작");
         }
     }
   }
@@ -396,21 +396,21 @@ void setup() {
   if(timerSet3 == 15555000){
     timerSet3 = 30000;
   }
-  Serial.println(mqttName);
-  Serial.println(timerSet1);
-  Serial.println(timerSet2);
-  Serial.println(timerSet3);
+  // Serial.println(mqttName);
+  // Serial.println(timerSet1);
+  // Serial.println(timerSet2);
+  // Serial.println(timerSet3);
 }
 void loop(){
     // WiFi 연결 상태 확인
     if (WiFi.status() != WL_CONNECTED) {
-      Serial.println("WIFI 연결 끊김, 재연결 시도");
+      // Serial.println("WIFI 연결 끊김, 재연결 시도");
       reconnectWiFi();
     }
 
     // MQTT 클라이언트 연결 상태 확인
     if (!client.connected()) {
-      Serial.println("MQTT 연결 끊김, 재연결 시도");
+      // Serial.println("MQTT 연결 끊김, 재연결 시도");
       reconnectMQTT();
     }
 
@@ -443,13 +443,13 @@ void loop(){
                 if(!checkBackHome(timerSet2)){ // 복귀 실패
                     sendHomeIR(); // 홈IR 발생
                     if(!checkBackHome(timerSet3)){ // 복귀 시도 실패
-                        Serial.println("청소봇 복귀 실패, 에러 메세지 발신");
+                        // Serial.println("청소봇 복귀 실패, 에러 메세지 발신");
                         sendMqttError("복귀 명령 이상");
                         cleaningbotRuningState = false;
                         return;
                     }else{
                         // 복귀 완료
-                        Serial.println("청소봇 복귀 완료, 청소가 끝났습니다.");
+                        // Serial.println("청소봇 복귀 완료, 청소가 끝났습니다.");
                         cleaningbotRuningState = false;
                         sendMqttJson(false);
                         return;
@@ -463,7 +463,7 @@ void loop(){
 bool checkStart(int timerset){ // 출발감지
     for(int i = 0; i < (timerset / 100); i++){
         if(digitalRead(checkInPlace) == LOW){
-            Serial.println("청소봇 출발 확인");
+            // Serial.println("청소봇 출발 확인");
             delay(500);
             return true;
         }else{
@@ -479,7 +479,7 @@ bool checkStart(int timerset){ // 출발감지
 bool checkBackHome(int timerset){
     for(int i = 0; i < (timerset / 100); i++){
         if(digitalRead(checkInPlace) == HIGH){
-            Serial.println("청소봇 복귀 확인");
+            // Serial.println("청소봇 복귀 확인");
             cleaningbotRuningState = false;
             sendMqttJson(false);
             return true;
@@ -496,27 +496,27 @@ bool checkBackHome(int timerset){
 void reconnectWiFi() {
   // 연결이 끊어지면 재연결을 시도
   while (WiFi.status() != WL_CONNECTED) {
-    Serial.print("WiFi 연결 시도...");
+    // Serial.print("WiFi 연결 시도...");
     // WiFi 연결을 시도합니다.
     WiFi.begin(ssid, password);
     delay(3000);
   }
-  Serial.println("WiFi에 연결되었습니다!");
+  // Serial.println("WiFi에 연결되었습니다!");
 }
 
 void reconnectMQTT() {
   // 클라이언트가 연결되지 않은 경우 재연결을 시도
   while (!client.connected()) {
-    Serial.print("MQTT 서버에 연결 시도...");
+    // Serial.print("MQTT 서버에 연결 시도...");
     // MQTT 서버에 연결을 시도합니다.
     if (client.connect(mqttName)) {
-      Serial.println("MQTT 서버에 연결되었습니다!");
+      // Serial.println("MQTT 서버에 연결되었습니다!");
       // 여기서 구독 재설정을 수행할 수 있습니다.
       client.subscribe(mqttTopic);
     } else {
-      Serial.print("연결 실패, rc=");
-      Serial.print(client.state());
-      Serial.println(" 다시 시도...");
+      // Serial.print("연결 실패, rc=");
+      // Serial.print(client.state());
+      // Serial.println(" 다시 시도...");
       delay(3000);
     }
   }
