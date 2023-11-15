@@ -11,6 +11,10 @@
 ## 라이브러리 설치
 
 ### Arduinojson / PubSubClient 라이브러리 설치
+보드 매니저를 실행(Ctrl + Shift + B)
+> esp8266 by ESP8266 Community
+
+해당 파일 설치
 
 라이브러리 매니저를 실행(Ctrl + Shift + I)
 >Arduinojson
@@ -21,30 +25,38 @@
 
 3개의 라이브러리를 검색하여 설치합니다.
 
+![image](https://github.com/HanSol1140/cleaningbot/assets/121269266/70dd053f-6b2f-4239-ba82-87fe4b074387)
+
+이제 모듈과 PC를 연결한 뒤 보드 및 포트 선택으로 가서 보드를 선택해주세요.
 <br><br>
 
 # 코드 업로드
 
-git에 올라온 'loadcell_HanSol_final.ino'파일의 코드를 ESP32에 업로드합니다.
+1. git에 올라온 'ESP01M_NNX_Cleaningbot.ino.ino'파일의 코드를 ESP32에 업로드합니다.
+![image](https://github.com/HanSol1140/cleaningbot/assets/121269266/5a8f5746-928a-40ba-b829-bd87d2c4b0f3)
 
-![image](https://github.com/HanSol1140/cleaningbot/assets/121269266/e95b73c2-3896-460b-b87f-f78f140895b6)
+코드의 상단 밑줄친 부분을 수정해서 mqttName / ssid(WIFI ID) / password(WIFI Password)를 수정해줍니다.
 
-코드의 상단 해당 부분을 수정해서 IP 주소 / MQTT Broker 주소 / 접속할 WIFi를 설정해줍니다.
+mqttName이 다른 기기와 겹칠경우 mqtt접속이 안되어 작동이 불가능합니다.
 
-혹은
 
-![image](https://github.com/HanSol1140/cleaningbot/assets/121269266/24ca2e6b-2283-422b-83ff-085c1fd4fbf5)
+![image](https://github.com/HanSol1140/cleaningbot/assets/121269266/82caef65-412d-44a2-a764-4073ca8d3658)
 
-해당 부분을 주석처리하여 공유기 설정을 통해 IP를 설정할 수 있습니다.
+공유기 설정을 통한 고정 IP 설정 말고도 해당 부분을 주석해제하여 원하는 IP로 고정할 수 있습니다.
 
 
 # 사용방법
 
 청소를 시작하려면 먼저 메인서버에서 MQTT브로커를 통해
 
-'cleaningbot_in'토픽에 {cleaningRobotRuningState: true}값을 전송해주어야합니다. (json형식)
+'cleaningbot_in'토픽에 {robotname : "cleaningbot_01",robotstate : true}값을 전송해주어야합니다. (json형식)
 
-값을 전달받은 청소봇은 cleaningRobotRuningState = true;로 설정하고 값이 true로 설정되면 청소를 시작합니다.
+
+청소명령 mqtt예시
+![image](https://github.com/HanSol1140/cleaningbot/assets/121269266/b69c864b-135f-4b50-80f3-250160ff5fa0)
+
+
+값을 전달받은 청소봇은 cleaningbotRuningState = true;로 설정하고 청소를 시작합니다.
 
 
 # 타이머 값 설명
@@ -56,53 +68,45 @@ ESP32가 실행되면 상단에서 설정한 주소에 따라 웹브라우저를
 
 타이머 1
 
-  처음 청소가 시작되고 종료되기까지의 시간입니다.
+  처음 청소명령을 받은 로봇이 대기 위치에서 벗어났는지 확인하는 타이머입니다.
 
-  지정한 시간이 종료되었는데 복귀를 하지 않았다면 청소 IR신호를 재발신하고 1번 타이머동안 복귀를 감지합니다.
+  이탈이 감지되었다면 청소시작/일시정지 IR을 발신합니다.
+
+  지정한 시간(timer1)내에 이탈을 감지하지 못했다면
   
-  복귀가 감지되엇다면 cleaningRobotRuningState = false;로 설정하고
+  청소시작/일시정지 IR을 두번 발신(청소 일시정지, 재시작)하고 다시 timer1시간동안 이탈을 감지합니다.
 
-  MQTT Broker의 'mainserver' 토픽에 json 형식 데이터 {cleaningRobotRuningState:false}를 전달합니다.
-
-  복귀하지 못했다면 MQTT Broker의 'mainserver' 토픽에 json 형식 데이터 {cleaningbot_error_code:1}를 전달합니다.
-
-  이후 cleaningRobotRuningState:false로 변경합니다.
+  해당 시간이 지나도 위치를 벗어나지 않았다면 sendMqttError("청소 명령 이상");을 mqtt로 발신합니다.
 
 <br>
 
 타이머 2.
 
-  타이머 1에서 청소를 다시시작했는데도 복귀하지 못했다면 타이머 2번만큼 대기시간을 추가하고 홈IR신호를 발신합니다.
+  타이머1에서 이탈이 감지되었다면 (대기위치를 벗어나 청소를 시작했다면)
 
-  복귀가 감지되엇다면 cleaningRobotRuningState = false;로 설정하고
+  timer2에 설정된 시간동안 복귀를 기다립니다.
 
-  MQTT Broker의 'mainserver' 토픽에 json 형식 데이터 {cleaningRobotRuningState:false}를 전달합니다.
+  timer2시간내에 로봇이 대기위치로 복귀했다면 청소종료
 
+  대기위치로 복귀하지 않았다면
+  
+  MQTT로 sendMqttError("복귀 명령 이상"); 메세지를 보내고 홈IR신호를 발신합니다.
 <br>
 
 타이머 3.
+  HomeIR
+  타이머 3의 지정된 시간만큼 대기하고 복귀를 감지합니다.
 
-  타이머 2가 종료되었는데도 청소봇이 제자리에 돌아오지 못했다면 타이머 3의 지정된 시간만큼 대기하고 복귀를 감지합니다.
-
-  복귀가 감지되엇다면 cleaningRobotRuningState = false;로 설정하고
-
-  MQTT Broker의 'mainserver' 토픽에 json 형식 데이터 {cleaningRobotRuningState:false}를 전달합니다.
-
-  복귀하지 못했다면 MQTT Broker의 'mainserver' 토픽에 json 형식 데이터 {cleaningbot_error_code:2}를 전달합니다.
-
-  이후 cleaningRobotRuningState:false로 변경합니다.
-  
-
-  복귀하지 못했다면 MQTT Broker의 'mainserver' 토픽에 json 형식 데이터 {cleaningbot_error_code:2}를 전달합니다.
+  복귀하지 못했다면 MQTT로 sendMqttError("복귀 명령 이상"); 메세지를 보내고 작업을 종료합니다.
 
 <br>
 <br>
   
 # GPIO
 ```c
-#define PinIR 2
-#define checkInPlace 18
-#define checkInTable 19
+const uint16_t checkInPlace = 9;
+const uint16_t checkInTable = 10;
+const uint16_t IR_TX = 4;
 
 void setup(){               
     pinMode(checkInPlace, INPUT_PULLUP);
@@ -111,30 +115,28 @@ void setup(){
 }
 ```
 
-GPIO 2번 핀은 IR신호 발신을 위한 PIN입니다.
+GPIO 4번 핀은 IR신호 발신을 위한 PIN입니다.
 
-GPIO 18, 19핀이 작동하기위한 전제조건으로
+GPIO 9, 10번 핀이 작동하기 위해서는
 
-메인서버에서 MQTT Broker를 통해 { cleaningRobotRuningState : true }를 보내주어야합니다.
+메인서버에서 MQTT Broker를 통해 { robotname : "지정한mqttName",robotstate : true }를 보내주어야합니다.
 
-해당 서버에서 { cleaningRobotRuningState : true } 형식의 json 값을 보내주면 ESP32는 GPIO 신호를 감지하여 청소를 시작합니다.
+해당 서버에서 해당 형식의 json데이터를 보내주면 ESP01M은 는 GPIO 신호를 감지하여 IR신호를 발신합니다.
 
+# 동작 순서
 
-1. cleaningRobotRuningState가 true일 경우 청소 로봇이 작동합니다.
+1. mqtt로 { robotname : "지정한mqttName",robotstate : true } 데이터를 받을 경우 청소 로봇이 작동합니다.
    
-2. 청소 로봇이 본래의 위치에서 이동하면 (checkInPlace가 LOW가 되면) 청소 시작 IR 신호를 보내고 (sendCleaningIR()),
-   타이머가 설정한 시간(timerSet1) 동안 청소 로봇이 복귀하는 것을 기다립니다 (checkBackHome(timerSet1)).
+2. 명령받은 청소로봇이 테이블을 감지하면(checkInTable == LOW) 청소 시작 IR 신호를 보내고 (sendPauseWorkIR()),
+   타이머가 설정한 시간(timerSet1) 동안 청소로봇의 출발을 기다립니다(checkInPlace) == LOW).
    
-3. 타이머 시간 내에 청소 로봇이 복귀하면 (digitalRead(checkInPlace) == HIGH),
-   청소 로봇의 상태를 false로 바꾸고(cleaningRobotRuningState = false;),
-   MQTT 메시지를 보내어 청소 완료를 알립니다 (sendMqttJson(false);).
+   만약 타이머 시간내로 로봇이 출발하지 않는다면 청소 시작 IR 신호를 두 번 보내고,
+   청소 로봇이 출발할 것을 기다립니다. 이 과정에서 출발하지 않는다면 에러를 보고하게 됩니다.
+   
+3. 타이머 시간 내에 청소 로봇이 로봇이 출발하면
+   checkBackHome(timerSet2)를 시작하여 타이머 시간내로 로봇의 복귀를 감지합니다.
+   로봇이 복귀했다면(checkInPlace) == HIGH) MQTT 메시지를 보내어 청소 완료를 알립니다 (sendMqttJson(false);).
 
-4. 만약 타이머 시간 내에 청소 로봇이 복귀하지 않으면, 다시 청소 시작 IR 신호를 두 번 보내고,
-   또 다시 청소 로봇이 복귀할 것을 기다립니다. 이 과정에서 복귀하지 않는다면 에러를 보고하게 됩니다.
-
-5. 그 다음 단계에서도 청소 로봇의 복귀를 기다리고, 복귀하지 않으면 복귀를 위한 IR 신호를 보내고 (sendHomeIR();),
-   마지막으로 청소 로봇이 복귀하는 것을 기다립니다 (checkBackHome(timerSet3);).
-
-6. 마지막 단계에서 청소 로봇이 복귀하지 않으면 에러를 보고하고, 청소 로봇의 상태를 false로 바꿉니다.
-
-
+   만약 타이머 시간 내에 청소 로봇이 복귀하지 않으면, 홈IR 신호를 보내고
+   timer3동안 로봇이 복귀할 것을 기다립니다(checkBackHome(timerSet3))
+   이 과정에서 복귀하지 않는다면 에러를 보고하게 됩니다.
