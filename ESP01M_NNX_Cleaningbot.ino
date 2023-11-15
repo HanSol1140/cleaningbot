@@ -7,9 +7,10 @@
 #include <IRsend.h>
 
 // MQTT
-char mqttName[16] = "cleaningbot_02";
-const char *mqttTopic = "cleaningbot_in";
-const char *mqttServer = "192.168.0.137";
+const char* mqttName = "cleaningbot_01";
+const char* mqttTopic = "cleaningbot_in";
+const char* mqttServer = "192.168.0.137";
+
 const int mqttPort = 1883;
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -19,12 +20,46 @@ const char *ssid = "NNX2-2.4G";
 const char *password = "$@43skshslrtm";
 uint16_t webPort = 80;
 ESP8266WebServer server(webPort);
+// ============================================================
+// MQTT 접속
+void setup_mqtt(){
+    while (!client.connected()){
+        if (client.connect(mqttName)){
+            Serial.println("MQTT 브로커에 연결됨");
+            client.subscribe(mqttTopic); // 구독할 토픽
+        }else{
+            Serial.print("MQTT 브로커 연결 실패, 상태코드: rc =  ");
+            Serial.print(client.state());
+            Serial.println(" 3초 후 재시도...");
+            delay(3000);
+        }
+    }
+}
 
+void reconnectMQTT() {
+  // 클라이언트가 연결되지 않은 경우 재연결을 시도
+  while (!client.connected()) {
+    Serial.print("MQTT 서버에 연결 시도...");
+    // MQTT 서버에 연결을 시도합니다.
+    if (client.connect(mqttName)) {
+      Serial.println("MQTT 서버에 연결되었습니다!");
+      // 여기서 구독 재설정을 수행할 수 있습니다.
+      client.subscribe(mqttTopic);
+    } else {
+      Serial.print("연결 실패, rc=");
+      Serial.print(client.state());
+      Serial.println(" 다시 시도...");
+      delay(3000);
+    }
+  }
+}
+
+// ============================================================
 // 고정 IP 설정 => setup_wifi부분에 고정 IP 설정부분을 같이 주석해제하면 됨
 // IPAddress ip(192, 168, 0, 2); // 고정하고 싶은 IP(사용중인 IP는 안됨)
 // IPAddress gateway(192, 168, 0, 1);  // 1 고정
 // IPAddress subnet(255, 255, 255, 0); // 고정
-// ============================================================
+
 void setup_wifi(){
     // 고정 IP 설정
     // if (!WiFi.config(ip, gateway, subnet)){
@@ -52,6 +87,16 @@ void setup_wifi(){
     Serial.println(webPort);
 }
 
+void reconnectWiFi() {
+  // 연결이 끊어지면 재연결을 시도
+  while (WiFi.status() != WL_CONNECTED) {
+    Serial.print("WiFi 연결 시도...");
+    // WiFi 연결을 시도합니다.
+    WiFi.begin(ssid, password);
+    delay(3000);
+  }
+  Serial.println("WiFi에 연결되었습니다!");
+}
 // ============================================================
 const uint16_t checkInPlace = 9;
 const uint16_t checkInTable = 10;
@@ -258,26 +303,6 @@ void InitWebServer(){
 }
 
 // ============================================================
-// MQTT 접속
-void setup_mqtt()
-{
-    while (!client.connected())
-    {
-        if (client.connect(mqttName))
-        {
-            Serial.println("MQTT 브로커에 연결됨");
-            client.subscribe(mqttTopic); // 구독할 토픽
-        }
-        else
-        {
-            Serial.print("MQTT 브로커 연결 실패, 상태코드: rc =  ");
-            Serial.print(client.state());
-            Serial.println(" 3초 후 재시도...");
-            delay(3000);
-        }
-    }
-}
-
 
 // JSON파싱을 위한 MQTT 콜백함수
 // MQTT JSON 받기
@@ -338,7 +363,7 @@ void sendMqttJson(bool state){
   char json[200];
   serializeJson(doc, json);
   // MQTT 브로커에 데이터 전송
-  client.publish("mqttserver", json);
+  client.publish("mainserver", json);
 }
 
 void sendMqttError(String errormessage){
@@ -350,7 +375,7 @@ void sendMqttError(String errormessage){
   char json[200];
   serializeJson(doc, json);
   // MQTT 브로커에 데이터 전송
-  client.publish("mqttserver", json);
+  client.publish("mainserver", json);
 }
 // ============================================================
 // ============================================================
@@ -493,31 +518,3 @@ bool checkBackHome(int timerset){
     return false;
 }
 
-void reconnectWiFi() {
-  // 연결이 끊어지면 재연결을 시도
-  while (WiFi.status() != WL_CONNECTED) {
-    Serial.print("WiFi 연결 시도...");
-    // WiFi 연결을 시도합니다.
-    WiFi.begin(ssid, password);
-    delay(3000);
-  }
-  Serial.println("WiFi에 연결되었습니다!");
-}
-
-void reconnectMQTT() {
-  // 클라이언트가 연결되지 않은 경우 재연결을 시도
-  while (!client.connected()) {
-    Serial.print("MQTT 서버에 연결 시도...");
-    // MQTT 서버에 연결을 시도합니다.
-    if (client.connect(mqttName)) {
-      Serial.println("MQTT 서버에 연결되었습니다!");
-      // 여기서 구독 재설정을 수행할 수 있습니다.
-      client.subscribe(mqttTopic);
-    } else {
-      Serial.print("연결 실패, rc=");
-      Serial.print(client.state());
-      Serial.println(" 다시 시도...");
-      delay(3000);
-    }
-  }
-}
