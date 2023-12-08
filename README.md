@@ -17,6 +17,7 @@ ESP8285는 코드 업로드시 IP 0과 우측의 GND부분을 연결하여 전�
 <br><br>
 
 ![image](https://github.com/HanSol1140/cleaningbot/assets/121269266/8d4fefd7-efd5-4288-b9e0-28abb31a8dbc)
+
 GP 2, 0으로 오해가 있을 수 있는데, 해당위치는 GP 10, 9번과 연결되어 있습니다,
 
 
