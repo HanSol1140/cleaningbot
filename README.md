@@ -1,10 +1,26 @@
-# ESP32 청소봇 코드 업로드
+# ESP01M 청소봇 코드 업로드
+<기존의 ESP01M로 짠 코드는 모듈을 잘못 지정함>
+    11/13일자 기준으로
+    지급받은 ESP-01M으로 코드를 짜야함
+    ESP8266기판에 ESP-01M칩셋이 끼워져있음
+    ESP8266의RX,TX우측에 IO0과 옆의  GND를 서로 연결한채로(프로그래밍 모드)
+    코드를 업로드해야 코드가 업로드됨
 
-## Aruduiono ESP32에 코드를 업로드
+    지급받은CP2102(USB to TTL)로는 RX/TX를 교차연결해야 업로드가 됨
+    (RX - RX / TX - TX를 연결해야 통신이 되는 컨버터가 있음)
+    지급 받은 기종은 ESP8285 ESP01M 모듈
+    GPIO 4 = IR_TX
+    GPIO 14 = IR_RX
 
-<a href="https://velog.io/@songhansol/Arduino-ESP32-%EC%82%AC%EC%9A%A9%ED%95%98%EA%B8%B0">아두이노 IDE를 사용한 ESP32 코딩방법</a>
+    모듈을 받았을때 빼놓은 선이 GP2, GP0으로
+    칩셋을 보고 햇갈리기 쉬우나 반대로 뒤집혀잇음
+    즉, 바깥쪽 핀은 GP9, GP10이고 안쪽핀이 GP2, GP0으로 되어있음
+    
+## Aruduiono ESP01M에 코드를 업로드
 
-해당 페이지를 참조하여 ESP32에 코드를 업로드합니다.
+<a href="https://velog.io/@songhansol/Arduino-ESP01M-%EC%82%AC%EC%9A%A9%ED%95%98%EA%B8%B0">아두이노 IDE를 사용한 ESP01M 코딩방법</a>
+
+해당 페이지를 참조하여 ESP01M에 코드를 업로드합니다.
 
 ## 업로드시 주의 사항
 
@@ -49,7 +65,7 @@ GP 2, 0으로 오해가 있을 수 있는데, 해당위치는 GP 10, 9번과 연
 
 # 코드 업로드
 
-git에 올라온 'ESP01M_NNX_Cleaningbot.ino.ino'파일의 코드를 ESP32에 업로드합니다.
+git에 올라온 'ESP01M_NNX_Cleaningbot.ino.ino'파일의 코드를 ESP01M에 업로드합니다.
 
 ![image](https://github.com/HanSol1140/cleaningbot/assets/121269266/5a8f5746-928a-40ba-b829-bd87d2c4b0f3)
 
@@ -80,7 +96,7 @@ mqttName이 다른 기기와 겹칠경우 mqtt접속이 안되어 작동이 불�
 
 # 타이머 값 설명
 
-ESP32가 실행되면 상단에서 설정한 주소에 따라 웹브라우저를 실행해 해당 IP에 접속합니다.
+ESP01M가 실행되면 상단에서 설정한 주소에 따라 웹브라우저를 실행해 해당 IP에 접속합니다.
 
 192.168.0.2로 설정했다면 192.168.0.2로 접속해주세요.
 
